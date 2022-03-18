@@ -5,9 +5,9 @@ import {
   parseZipCode,
   serviceFeesFactory,
 } from "../domain/service-fees/ServiceFees";
-import { BusinessData } from "../entities/businessData.entity";
+import { BusinessData } from "../repositories/entities/businessData.entity";
 import BusinessDataCustomRepository from "../repositories/businessData.custom.repository";
-import HomeService from "./home.service";
+import HomeService from "../../home/services/home.service";
 
 @Injectable()
 export default class BusinessDataService {

@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { DeepPartial } from "typeorm";
-import { User } from "../entities/user.entity";
+import { User } from "../repositories/entities/user.entity";
 import UserCustomRepository from "../repositories/user.custom.repository";
 
 @Injectable()
