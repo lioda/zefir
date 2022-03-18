@@ -1,6 +1,10 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { DeepPartial } from "typeorm";
+import { NegociationMargin } from "../domain/NegociationMargin";
+import {
+  parseZipCode,
+  serviceFeesFactory,
+} from "../domain/service-fees/ServiceFees";
 import { BusinessData } from "../entities/businessData.entity";
 import BusinessDataCustomRepository from "../repositories/businessData.custom.repository";
 import HomeService from "./home.service";
@@ -19,22 +23,37 @@ export default class BusinessDataService {
     finalOfferPrice: number,
     targetSalePrice: number
   ): Promise<BusinessData> {
-    // TODO : write business data logic to compute :
-    //  - serviceFees (see README)
-    //  - negociation margin (see README)
+    const zipCode = (await this.homeService.findHome(homeUuid)).zipcode;
 
-    const businessData = await this.createBusinessData({
+    const businessData = await this.businessDataRepository.createBusinessData({
       homeUuid,
       initialOfferPrice,
       finalOfferPrice,
       targetSalePrice,
-      // serviceFees
-      // negociationMargin
+      serviceFees: this.computeServiceFees(finalOfferPrice, zipCode),
+      negociationMargin: this.computeNegotiationMargin(
+        finalOfferPrice,
+        targetSalePrice
+      ),
     });
     await this.homeService.updateHome(homeUuid, {
       businessDataUuid: businessData.uuid,
     });
     return businessData;
+  }
+
+  private computeNegotiationMargin(
+    finalOfferPrice: number,
+    targetSalePrice: number
+  ): NegociationMargin {
+    return new NegociationMargin(finalOfferPrice, targetSalePrice);
+  }
+  private computeServiceFees(finalOfferPrice: number, zipCode: string): number {
+    const feeRegion = parseZipCode(zipCode);
+    if (!feeRegion) {
+      throw new Error(`no applicable fees for ${zipCode}`);
+    }
+    return serviceFeesFactory(feeRegion).computeFeeForPrice(finalOfferPrice);
   }
 
   async findBusinessDataByHomeUuid(homeUuid: string): Promise<BusinessData> {
@@ -53,15 +72,6 @@ export default class BusinessDataService {
       throw Error(`Could not find business data with uuid ${uuid}`);
     }
     return results[0];
-  }
-
-  async createBusinessData(
-    inputBusinessData: DeepPartial<BusinessData>
-  ): Promise<BusinessData> {
-    const businessData = await this.businessDataRepository.create(
-      inputBusinessData
-    );
-    return this.businessDataRepository.save(businessData);
   }
 
   async deleteBusinessData(uuid: string): Promise<number> {
